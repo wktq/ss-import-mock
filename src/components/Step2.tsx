@@ -44,6 +44,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ShareIcon from '@mui/icons-material/Share';
+import SearchIcon from '@mui/icons-material/Search';
+import WarningIcon from '@mui/icons-material/Warning';
 import { Company, analyzeCompanies, AnalyzedCompany, products } from '../data/demoData';
 
 interface Step2Props {
@@ -107,6 +109,7 @@ export const Step2: React.FC<Step2Props> = ({ companies, productId, onNext, onBa
   const [sortBy, setSortBy] = useState<'score' | 'name'>('score');
   const [previewCompany, setPreviewCompany] = useState<AnalyzedCompany | null>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [showUrlSearch, setShowUrlSearch] = useState(false);
 
   useEffect(() => {
     // 分析のシミュレーション
@@ -132,6 +135,11 @@ export const Step2: React.FC<Step2Props> = ({ companies, productId, onNext, onBa
         setProgress(100);
         setTimeout(() => {
           setIsAnalyzing(false);
+          // Check if any companies are missing URLs
+          const companiesWithoutUrl = analyzed.filter(c => !c.url).length;
+          if (companiesWithoutUrl > 0) {
+            setShowUrlSearch(true);
+          }
         }, 500);
       }, 2000);
     };
@@ -163,6 +171,23 @@ export const Step2: React.FC<Step2Props> = ({ companies, productId, onNext, onBa
   };
 
   const approachStats = getApproachStats();
+
+  const handleSearchURLs = () => {
+    // Mock URL search functionality
+    setAnalyzedCompanies(prev => prev.map(company => {
+      if (!company.url) {
+        // Simulate URL search
+        return {
+          ...company,
+          url: `https://${company.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+        };
+      }
+      return company;
+    }));
+    setShowUrlSearch(false);
+  };
+
+  const companiesWithoutUrl = analyzedCompanies.filter(c => !c.url).length;
 
   const generateEmailContent = (company: AnalyzedCompany) => {
     return `件名: ${company.name}様｜${selectedProduct?.name}のご提案
@@ -296,10 +321,15 @@ ${company.analysisReason?.split('。')[0]}という課題をお持ちの企業�
         </Box>
         {companies.filter(c => !c.description).length > 0 && (
           <Fade in timeout={1000}>
-            <Typography variant="body1" color="text.secondary" className="mt-6 text-center">
-              <TrendingUpIcon className="inline mr-2" />
-              URLから企業説明を生成しています...
-            </Typography>
+            <Box className="mt-6">
+              <Typography variant="body1" color="text.secondary" className="text-center mb-2">
+                <TrendingUpIcon className="inline mr-2" />
+                URLから企業説明を生成しています...
+              </Typography>
+              <Typography variant="caption" color="text.secondary" className="text-center block">
+                説明なし: {companies.filter(c => !c.description).length}件
+              </Typography>
+            </Box>
           </Fade>
         )}
       </Box>
@@ -308,6 +338,28 @@ ${company.analysisReason?.split('。')[0]}という課題をお持ちの企業�
 
   return (
     <Box>
+      {/* URL取得のアラート */}
+      {showUrlSearch && companiesWithoutUrl > 0 && (
+        <Alert 
+          severity="warning" 
+          className="mb-4"
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={handleSearchURLs}
+              startIcon={<SearchIcon />}
+            >
+              企業名からURLを探す
+            </Button>
+          }
+        >
+          <Typography variant="body2">
+            <WarningIcon fontSize="small" className="mr-1 align-middle" />
+            {companiesWithoutUrl}件の企業にURLがありません。フォーム営業にはURLが必須です。
+          </Typography>
+        </Alert>
+      )}
 
       {/* ソートオプションとアプローチ方法の内訳 */}
       <Grow in timeout={700}>
@@ -370,9 +422,13 @@ ${company.analysisReason?.split('。')[0]}という課題をお持ちの企業�
                       <Typography variant="body1" className="font-medium text-gray-900">
                         {company.name}
                       </Typography>
-                      {company.url && (
+                      {company.url ? (
                         <Typography variant="caption" className="text-blue-600">
                           {company.url}
+                        </Typography>
+                      ) : (
+                        <Typography variant="caption" className="text-red-600">
+                          URLなし
                         </Typography>
                       )}
                     </Box>

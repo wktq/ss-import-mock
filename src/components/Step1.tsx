@@ -29,6 +29,7 @@ import {
   Badge,
   TableContainer,
   Collapse,
+  Tooltip,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
@@ -42,6 +43,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SearchIcon from '@mui/icons-material/Search';
 import { categories, companies, products, Company } from '../data/demoData';
 
 interface Step1Props {
@@ -142,7 +144,27 @@ export const Step1: React.FC<Step1Props> = ({ onNext }) => {
     }));
     setSelectedCompanies([...selectedCompanies, ...importedCompanies]);
     setShowCSVDialog(false);
+    setCSVData([]);
+    setCSVHeaders([]);
+    setCSVMapping({ name: '', url: '', description: '' });
   };
+
+  const handleSearchURLs = () => {
+    // Mock URL search functionality
+    setSelectedCompanies(prev => prev.map(company => {
+      if (!company.url && company.categoryId === 'csv') {
+        // Simulate URL search
+        return {
+          ...company,
+          url: `https://${company.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+        };
+      }
+      return company;
+    }));
+  };
+
+  const csvCompaniesWithoutUrl = selectedCompanies.filter(c => c.categoryId === 'csv' && !c.url).length;
+  const csvCompaniesWithoutDescription = selectedCompanies.filter(c => c.categoryId === 'csv' && !c.description).length;
 
   const getSelectedCategoryCount = () => {
     return selectedCategories.reduce((sum, catId) => {
@@ -353,6 +375,17 @@ export const Step1: React.FC<Step1Props> = ({ onNext }) => {
             </Button>
           </Box>
         </Box>
+        {(csvCompaniesWithoutUrl > 0 || csvCompaniesWithoutDescription > 0) && (
+          <Box className="absolute top-0 left-0 right-0 bg-yellow-50 border-b border-yellow-200 py-2 px-4 text-center">
+            <Typography variant="caption" className="text-yellow-800">
+              <WarningIcon fontSize="small" className="mr-1 align-middle" />
+              {csvCompaniesWithoutUrl > 0 && `URLなし: ${csvCompaniesWithoutUrl}件`}
+              {csvCompaniesWithoutUrl > 0 && csvCompaniesWithoutDescription > 0 && ' / '}
+              {csvCompaniesWithoutDescription > 0 && `説明なし: ${csvCompaniesWithoutDescription}件`}
+              {csvCompaniesWithoutDescription > 0 && ' (次のステップでAIが生成)'}
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* 選択中リストモーダル */}
@@ -399,16 +432,12 @@ export const Step1: React.FC<Step1Props> = ({ onNext }) => {
                       </TableCell>
                       <TableCell>
                         {company.url ? (
-                          <Chip 
-                            label="あり" 
-                            color="success" 
-                            size="small"
-                            icon={<CheckCircleIcon />}
-                            className="font-medium"
-                          />
+                          <Typography variant="caption" className="text-gray-600 break-all">
+                            {company.url}
+                          </Typography>
                         ) : (
                           <Chip 
-                            label="なし" 
+                            label="URLなし" 
                             color="warning" 
                             size="small"
                             icon={<WarningIcon />}
@@ -418,16 +447,24 @@ export const Step1: React.FC<Step1Props> = ({ onNext }) => {
                       </TableCell>
                       <TableCell>
                         {company.description ? (
-                          <Chip 
-                            label="あり" 
-                            color="success" 
-                            size="small"
-                            icon={<CheckCircleIcon />}
-                            className="font-medium"
-                          />
+                          <Tooltip title={company.description}>
+                            <Typography 
+                              variant="caption" 
+                              className="text-gray-600 cursor-help"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {company.description}
+                            </Typography>
+                          </Tooltip>
                         ) : (
                           <Chip 
-                            label="なし" 
+                            label="説明なし" 
                             color="warning" 
                             size="small"
                             icon={<WarningIcon />}
@@ -458,7 +495,17 @@ export const Step1: React.FC<Step1Props> = ({ onNext }) => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions className="border-t">
+        <DialogActions className="border-t p-4">
+          {csvCompaniesWithoutUrl > 0 && (
+            <Button
+              variant="outlined"
+              onClick={handleSearchURLs}
+              startIcon={<SearchIcon />}
+              className="mr-auto"
+            >
+              企業名からURLを探す ({csvCompaniesWithoutUrl}件)
+            </Button>
+          )}
           <Button onClick={() => setShowListModal(false)}>
             閉じる
           </Button>

@@ -188,8 +188,14 @@ export const analyzeCompanies = (companies: Company[], productId: string): Analy
     const approaches = ['email', 'form', 'teleapo', 'referral', 'sns'] as const;
     const approach = approaches[Math.floor(Math.random() * approaches.length)];
     
+    // Generate description if missing (simulating AI generation from URL)
+    const description = company.description || (
+      company.url ? `${company.name}の主要ビジネスは、業界向けのソリューションを提供し、顧客のビジネス課題を解決することです。` : ''
+    );
+    
     return {
       ...company,
+      description,
       compatibilityScore: score,
       recommendedApproach: approach,
       analysisReason: `${company.name}は${productId === 'p1' ? 'カスタマーサポート' : productId === 'p2' ? '営業効率化' : '採用プロセス'}の課題を抱えている可能性が高いです。`
